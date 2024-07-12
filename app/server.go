@@ -35,6 +35,9 @@ func main() {
 		message := req_data.Path()[2]
 		conn.Write([]byte(fmt.Sprintf("HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: %d\r\n\r\n%s", len(message), message)))
 		conn.Close()
+	} else if req_data.Path()[1] == "user-agent" {
+		message := req_data.Headers()["User-Agent"]
+		conn.Write([]byte(fmt.Sprintf("HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: %d\r\n\r\n%s", len(message), message)))
 	} else {
 		conn.Write([]byte("HTTP/1.1 404 Not Found\r\n\r\n"))
 	}
