@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"net"
 	"os"
-	"strings"
 )
 
 func main() {
@@ -27,12 +26,10 @@ func main() {
 	req := make([]byte, 1024)
 	conn.Read(req)
 	data_str := string(req)
-
-	request_line := strings.TrimSpace(data_str)
-	parts := strings.Split(request_line, " ")
+	req_data := NewRequest(data_str)
 
 	// Path section
-	if parts[1] != "/" {
+	if req_data.Path() != "/" {
 		conn.Write([]byte("HTTP/1.1 404 Not Found\r\n\r\n"))
 		conn.Close()
 	} else {
