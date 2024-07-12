@@ -17,6 +17,10 @@ func NewRequest(data string) *Request {
 	}
 }
 
-func (r *Request) Path() string {
+func (r *Request) RawPath() string {
 	return r.data_parts[1]
+}
+
+func (r *Request) Path() []string {
+	return strings.Split(r.data_parts[1], "/")
 }

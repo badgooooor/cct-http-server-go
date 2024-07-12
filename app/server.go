@@ -28,11 +28,14 @@ func main() {
 	data_str := string(req)
 	req_data := NewRequest(data_str)
 
-	// Path section
-	if req_data.Path() != "/" {
-		conn.Write([]byte("HTTP/1.1 404 Not Found\r\n\r\n"))
+	// Handle paths
+	if req_data.RawPath() == "/" {
+		conn.Write([]byte("HTTP/1.1 200 OK\r\n\r\n"))
+	} else if req_data.Path()[1] == "echo" {
+		message := req_data.Path()[2]
+		conn.Write([]byte(fmt.Sprintf("HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: %d\r\n\r\n%s", len(message), message)))
 		conn.Close()
 	} else {
-		conn.Write([]byte("HTTP/1.1 200 OK\r\n\r\n"))
+		conn.Write([]byte("HTTP/1.1 404 Not Found\r\n\r\n"))
 	}
 }
