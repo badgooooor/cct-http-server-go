@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"strings"
 )
 
@@ -13,14 +12,10 @@ type Request struct {
 }
 
 func NewRequest(data string) *Request {
-	fmt.Printf("%s\n", data)
 	request_line := strings.TrimSpace(data)
 	data_parts := strings.Split(request_line, " ")
 
 	headers := parseHeaders(data_parts)
-	for k, v := range headers {
-		fmt.Println(k, v)
-	}
 	return &Request{
 		data_parts,
 		headers,
