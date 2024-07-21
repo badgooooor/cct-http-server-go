@@ -1,14 +1,20 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"net"
 	"os"
+	"strings"
 )
 
 func main() {
 	// You can use print statements as follows for debugging, they'll be visible when running tests.
 	fmt.Println("Logs from your program will appear here!")
+
+	// Flags
+	directoryPtr := flag.String("directory", "/tmp/", "file directory")
+	flag.Parse()
 
 	l, err := net.Listen("tcp", "0.0.0.0:4221")
 	if err != nil {
@@ -23,12 +29,11 @@ func main() {
 			os.Exit(1)
 		}
 
-		go handleConnection(conn)
+		go handleConnection(conn, directoryPtr)
 	}
-
 }
 
-func handleConnection(conn net.Conn) {
+func handleConnection(conn net.Conn, directoryPtr *string) {
 	defer conn.Close()
 
 	req := make([]byte, 1024)
@@ -46,6 +51,17 @@ func handleConnection(conn net.Conn) {
 	} else if req_data.Path()[1] == "user-agent" {
 		message := req_data.Headers()["User-Agent"]
 		conn.Write([]byte(fmt.Sprintf("HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: %d\r\n\r\n%s", len(message), message)))
+	} else if req_data.Path()[1] == "files" {
+		dir := *directoryPtr
+		fileName := strings.TrimPrefix(req_data.Path()[2], "/files/")
+		fmt.Print(fileName)
+		data, err := os.ReadFile(dir + fileName)
+		if err != nil {
+			conn.Write([]byte("HTTP/1.1 404 Not Found\r\n\r\n"))
+		} else {
+			conn.Write([]byte(fmt.Sprintf("HTTP/1.1 200 OK\r\nContent-Type: application/octet-stream\r\nContent-Length: %d\r\n\r\n%s", len(data), data)))
+		}
+
 	} else {
 		conn.Write([]byte("HTTP/1.1 404 Not Found\r\n\r\n"))
 	}
