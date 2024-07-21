@@ -50,18 +50,32 @@ func handleConnection(conn net.Conn, directoryPtr *string) {
 		conn.Close()
 	} else if req_data.Path()[1] == "user-agent" {
 		message := req_data.Headers()["User-Agent"]
+
 		conn.Write([]byte(fmt.Sprintf("HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: %d\r\n\r\n%s", len(message), message)))
 	} else if req_data.Path()[1] == "files" {
 		dir := *directoryPtr
 		fileName := strings.TrimPrefix(req_data.Path()[2], "/files/")
-		fmt.Print(fileName)
-		data, err := os.ReadFile(dir + fileName)
-		if err != nil {
-			conn.Write([]byte("HTTP/1.1 404 Not Found\r\n\r\n"))
-		} else {
-			conn.Write([]byte(fmt.Sprintf("HTTP/1.1 200 OK\r\nContent-Type: application/octet-stream\r\nContent-Length: %d\r\n\r\n%s", len(data), data)))
-		}
 
+		method := req_data.Method()
+
+		if method == "GET" {
+			data, err := os.ReadFile(dir + fileName)
+			if err != nil {
+				conn.Write([]byte("HTTP/1.1 404 Not Found\r\n\r\n"))
+			} else {
+				conn.Write([]byte(fmt.Sprintf("HTTP/1.1 200 OK\r\nContent-Type: application/octet-stream\r\nContent-Length: %d\r\n\r\n%s", len(data), data)))
+			}
+		} else if method == "POST" {
+			file := []byte(strings.Trim(req_data.body, "\x00"))
+
+			if err := os.WriteFile(dir+fileName, file, 0644); err != nil {
+				conn.Write([]byte("HTTP/1.1 404 Not found\r\n\r\n"))
+			} else {
+				conn.Write([]byte("HTTP/1.1 201 Created\r\n\r\n"))
+			}
+		} else {
+			conn.Write([]byte("HTTP/1.1 404 Not Found\r\n\r\n"))
+		}
 	} else {
 		conn.Write([]byte("HTTP/1.1 404 Not Found\r\n\r\n"))
 	}
