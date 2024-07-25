@@ -19,11 +19,16 @@ func NewRequest(data string) *Request {
 
 	body, seperator_idx := parseBody(request_line)
 	headers := parseHeaders(data_parts, seperator_idx)
+
 	return &Request{
 		data_parts,
 		headers,
 		body,
 	}
+}
+
+func contentEncoding(headers Headers) string {
+	return headers["Accept-Encoding"]
 }
 
 func parseHeaders(data_parts []string, seperator_idx int) Headers {

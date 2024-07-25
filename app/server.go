@@ -46,12 +46,16 @@ func handleConnection(conn net.Conn, directoryPtr *string) {
 		conn.Write([]byte("HTTP/1.1 200 OK\r\n\r\n"))
 	} else if req_data.Path()[1] == "echo" {
 		message := req_data.Path()[2]
-		conn.Write([]byte(fmt.Sprintf("HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: %d\r\n\r\n%s", len(message), message)))
-		conn.Close()
+		response := textResponse(200, message)
+		encoding := req_data.Headers()["Accept-Encoding"]
+		if encoding == "gzip" {
+			response.Headers["Content-Encoding"] = encoding
+		}
+		response.Write(conn)
 	} else if req_data.Path()[1] == "user-agent" {
 		message := req_data.Headers()["User-Agent"]
-
-		conn.Write([]byte(fmt.Sprintf("HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: %d\r\n\r\n%s", len(message), message)))
+		response := textResponse(200, message)
+		response.Write(conn)
 	} else if req_data.Path()[1] == "files" {
 		dir := *directoryPtr
 		fileName := strings.TrimPrefix(req_data.Path()[2], "/files/")
@@ -61,7 +65,8 @@ func handleConnection(conn net.Conn, directoryPtr *string) {
 		if method == "GET" {
 			data, err := os.ReadFile(dir + fileName)
 			if err != nil {
-				conn.Write([]byte("HTTP/1.1 404 Not Found\r\n\r\n"))
+				response := textResponse(404, "")
+				response.Write(conn)
 			} else {
 				conn.Write([]byte(fmt.Sprintf("HTTP/1.1 200 OK\r\nContent-Type: application/octet-stream\r\nContent-Length: %d\r\n\r\n%s", len(data), data)))
 			}
@@ -69,14 +74,17 @@ func handleConnection(conn net.Conn, directoryPtr *string) {
 			file := []byte(strings.Trim(req_data.body, "\x00"))
 
 			if err := os.WriteFile(dir+fileName, file, 0644); err != nil {
-				conn.Write([]byte("HTTP/1.1 404 Not found\r\n\r\n"))
+				response := textResponse(404, "")
+				response.Write(conn)
 			} else {
 				conn.Write([]byte("HTTP/1.1 201 Created\r\n\r\n"))
 			}
 		} else {
-			conn.Write([]byte("HTTP/1.1 404 Not Found\r\n\r\n"))
+			response := textResponse(404, "")
+			response.Write(conn)
 		}
 	} else {
-		conn.Write([]byte("HTTP/1.1 404 Not Found\r\n\r\n"))
+		response := textResponse(404, "")
+		response.Write(conn)
 	}
 }
