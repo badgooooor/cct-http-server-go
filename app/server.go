@@ -68,7 +68,8 @@ func handleConnection(conn net.Conn, directoryPtr *string) {
 				response := textResponse(404, "")
 				response.Write(conn)
 			} else {
-				conn.Write([]byte(fmt.Sprintf("HTTP/1.1 200 OK\r\nContent-Type: application/octet-stream\r\nContent-Length: %d\r\n\r\n%s", len(data), data)))
+				response := fileResponse(200, data)
+				response.Write(conn)
 			}
 		} else if method == "POST" {
 			file := []byte(strings.Trim(req_data.body, "\x00"))
@@ -77,7 +78,8 @@ func handleConnection(conn net.Conn, directoryPtr *string) {
 				response := textResponse(404, "")
 				response.Write(conn)
 			} else {
-				conn.Write([]byte("HTTP/1.1 201 Created\r\n\r\n"))
+				response := textResponse(201, "")
+				response.Write(conn)
 			}
 		} else {
 			response := textResponse(404, "")

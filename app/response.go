@@ -39,3 +39,16 @@ func textResponse(statusCode int, body string) *HTTPResponse {
 
 	return response
 }
+
+func fileResponse(statusCode int, body []byte) *HTTPResponse {
+	response := &HTTPResponse{
+		StatusCode: statusCode,
+		Headers: map[string]string{
+			"Content-Type":   "application/octet-stream",
+			"Content-Length": fmt.Sprintf("%d", len(body)),
+		},
+		Body: body,
+	}
+
+	return response
+}
