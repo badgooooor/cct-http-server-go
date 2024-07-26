@@ -8,39 +8,32 @@ import (
 type Headers map[string]string
 
 type Request struct {
-	data_parts []string
-	headers    Headers
-	body       string
+	dataParts []string
+	headers   Headers
+	body      string
 }
 
 func NewRequest(data string) *Request {
-	request_line := strings.TrimSpace(data)
-	data_parts := strings.Split(request_line, " ")
+	requestLine := strings.TrimSpace(data)
+	body, seperator_idx := parseBody(requestLine)
 
-	body, seperator_idx := parseBody(request_line)
-	headers := parseHeaders(data_parts, seperator_idx)
+	dataParts := strings.Split(requestLine, "\r\n")
+	headers := parseHeaders(dataParts, seperator_idx)
 
 	return &Request{
-		data_parts,
+		dataParts,
 		headers,
 		body,
 	}
 }
 
-func contentEncoding(headers Headers) string {
-	return headers["Accept-Encoding"]
-}
-
-func parseHeaders(data_parts []string, seperator_idx int) Headers {
+func parseHeaders(dataParts []string, seperatorIdx int) Headers {
 	headers := make(map[string]string)
-	for i := 2; i < seperator_idx+1; i++ {
-		splited_data_key := strings.Split(data_parts[i], "\n")
+	for i := 2; i < seperatorIdx; i++ {
+		splitedLine := strings.Split(dataParts[i], ":")
 
-		key := strings.Replace(splited_data_key[1], ":", "", 1)
-
-		splited_data_key_value := strings.Split(data_parts[i+1], "\n")
-		value := strings.TrimSpace(splited_data_key_value[0])
-
+		key := splitedLine[0]
+		value := strings.TrimSpace(splitedLine[1])
 		headers[key] = value
 	}
 
@@ -58,15 +51,17 @@ func parseBody(request_line string) (string, int) {
 }
 
 func (r *Request) Method() string {
-	return r.data_parts[0]
+	splited := strings.Split(r.dataParts[0], " ")
+	return splited[0]
 }
 
 func (r *Request) RawPath() string {
-	return r.data_parts[1]
+	splited := strings.Split(r.dataParts[0], " ")
+	return splited[1]
 }
 
 func (r *Request) Path() []string {
-	return strings.Split(r.data_parts[1], "/")
+	return strings.Split(r.RawPath(), "/")
 }
 
 func (r *Request) Headers() Headers {

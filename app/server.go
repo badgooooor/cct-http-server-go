@@ -22,6 +22,61 @@ func main() {
 	}
 	defer l.Close()
 
+	router := NewRouter()
+
+	router.Handle("GET", "/", func(r Request) Response {
+		return Response{StatusCode: 200}
+	})
+
+	router.Handle("GET", "/echo/*", func(r Request) Response {
+		message := r.Path()[2]
+		response := textResponse(200, message)
+		encoding := r.Headers()["Accept-Encoding"]
+		if strings.Contains(encoding, "gzip") {
+			response.Headers["Content-Encoding"] = "gzip"
+		}
+
+		return *response
+	})
+
+	router.Handle("GET", "/user-agent", func(r Request) Response {
+		message := r.Headers()["User-Agent"]
+		response := textResponse(200, message)
+		return *response
+	})
+
+	router.Handle("GET", "/files/*", func(r Request) Response {
+		dir := *directoryPtr
+		fileName := strings.TrimPrefix(r.Path()[2], "/files/")
+
+		data, err := os.ReadFile(dir + fileName)
+		var response *Response
+		if err != nil {
+			response = textResponse(404, "")
+		} else {
+			response = fileResponse(200, data)
+		}
+
+		return *response
+	})
+
+	router.Handle("POST", "/files/*", func(r Request) Response {
+		dir := *directoryPtr
+		fileName := strings.TrimPrefix(r.Path()[2], "/files/")
+
+		file := []byte(strings.Trim(r.body, "\x00"))
+
+		var response *Response
+		if err := os.WriteFile(dir+fileName, file, 0644); err != nil {
+			response = textResponse(404, "")
+
+		} else {
+			response = textResponse(201, "")
+		}
+
+		return *response
+	})
+
 	for {
 		conn, err := l.Accept()
 		if err != nil {
@@ -29,64 +84,6 @@ func main() {
 			os.Exit(1)
 		}
 
-		go handleConnection(conn, directoryPtr)
-	}
-}
-
-func handleConnection(conn net.Conn, directoryPtr *string) {
-	defer conn.Close()
-
-	req := make([]byte, 1024)
-	conn.Read(req)
-	data_str := string(req)
-	req_data := NewRequest(data_str)
-
-	// Handle paths
-	if req_data.RawPath() == "/" {
-		conn.Write([]byte("HTTP/1.1 200 OK\r\n\r\n"))
-	} else if req_data.Path()[1] == "echo" {
-		message := req_data.Path()[2]
-		response := textResponse(200, message)
-		encoding := req_data.Headers()["Accept-Encoding"]
-		if encoding == "gzip" {
-			response.Headers["Content-Encoding"] = encoding
-		}
-		response.Write(conn)
-	} else if req_data.Path()[1] == "user-agent" {
-		message := req_data.Headers()["User-Agent"]
-		response := textResponse(200, message)
-		response.Write(conn)
-	} else if req_data.Path()[1] == "files" {
-		dir := *directoryPtr
-		fileName := strings.TrimPrefix(req_data.Path()[2], "/files/")
-
-		method := req_data.Method()
-
-		if method == "GET" {
-			data, err := os.ReadFile(dir + fileName)
-			if err != nil {
-				response := textResponse(404, "")
-				response.Write(conn)
-			} else {
-				response := fileResponse(200, data)
-				response.Write(conn)
-			}
-		} else if method == "POST" {
-			file := []byte(strings.Trim(req_data.body, "\x00"))
-
-			if err := os.WriteFile(dir+fileName, file, 0644); err != nil {
-				response := textResponse(404, "")
-				response.Write(conn)
-			} else {
-				response := textResponse(201, "")
-				response.Write(conn)
-			}
-		} else {
-			response := textResponse(404, "")
-			response.Write(conn)
-		}
-	} else {
-		response := textResponse(404, "")
-		response.Write(conn)
+		go router.handleConnection(conn)
 	}
 }
