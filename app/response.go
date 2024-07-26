@@ -45,7 +45,6 @@ func textResponseWithOpts(statusCode int, body string, opts *TextResponseOpts) *
 		w.Close()
 
 		content = buffer.String()
-		fmt.Println(content)
 	} else {
 		content = body
 	}
