@@ -1,6 +1,8 @@
 package main
 
 import (
+	"bytes"
+	"compress/gzip"
 	"fmt"
 	"net"
 	"net/http"
@@ -26,15 +28,35 @@ func (r Response) Write(conn net.Conn) error {
 	return err
 }
 
-// Composition
+type TextResponseOpts struct {
+	Compression string
+}
+
 func textResponse(statusCode int, body string) *Response {
+	return textResponseWithOpts(statusCode, body, &TextResponseOpts{})
+}
+
+func textResponseWithOpts(statusCode int, body string, opts *TextResponseOpts) *Response {
+	var content string
+	if opts.Compression == "gzip" {
+		var buffer bytes.Buffer
+		w := gzip.NewWriter(&buffer)
+		w.Write([]byte(body))
+		w.Close()
+
+		content = buffer.String()
+		fmt.Println(content)
+	} else {
+		content = body
+	}
+
 	response := &Response{
 		StatusCode: statusCode,
 		Headers: map[string]string{
 			"Content-Type":   "text/plain",
-			"Content-Length": fmt.Sprintf("%d", len(body)),
+			"Content-Length": fmt.Sprintf("%d", len(content)),
 		},
-		Body: []byte(body),
+		Body: []byte(content),
 	}
 
 	return response

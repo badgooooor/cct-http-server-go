@@ -29,11 +29,17 @@ func main() {
 	})
 
 	router.Handle("GET", "/echo/*", func(r Request) Response {
+		var response *Response
 		message := r.Path()[2]
-		response := textResponse(200, message)
+
 		encoding := r.Headers()["Accept-Encoding"]
 		if strings.Contains(encoding, "gzip") {
+			response = textResponseWithOpts(200, message, &TextResponseOpts{
+				Compression: "gzip",
+			})
 			response.Headers["Content-Encoding"] = "gzip"
+		} else {
+			response = textResponse(200, message)
 		}
 
 		return *response

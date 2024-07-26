@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"slices"
 	"strings"
 )
@@ -20,6 +21,7 @@ func NewRequest(data string) *Request {
 	dataParts := strings.Split(requestLine, "\r\n")
 	headers := parseHeaders(dataParts, seperator_idx)
 
+	fmt.Println("body", requestLine)
 	return &Request{
 		dataParts,
 		headers,
